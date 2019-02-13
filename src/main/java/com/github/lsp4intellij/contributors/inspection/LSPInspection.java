@@ -23,7 +23,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.swing.*;
+
+import static java.lang.Thread.sleep;
 
 public class LSPInspection extends LocalInspectionTool {
 
@@ -57,10 +60,16 @@ public class LSPInspection extends LocalInspectionTool {
      */
     private ProblemDescriptor[] descriptorsForManager(EditorEventManager m, PsiFile file, InspectionManager manager,
             boolean isOnTheFly) {
-        List<ProblemDescriptor> descriptors = new ArrayList<>();
 
-        Set<Diagnostic> diagnostics = m.getDiagnostics();
-        for (Diagnostic diagnostic : diagnostics) {
+        // Dirty hack to wait till the diagnostic notification comes from the server.
+        try {
+            sleep(500);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        List<ProblemDescriptor> descriptors = new ArrayList<>();
+        AtomicReference<Set<Diagnostic>> diagnostics = new AtomicReference<>(m.getDiagnostics());
+        for (Diagnostic diagnostic : diagnostics.get()) {
             String code = diagnostic.getCode();
             String message = diagnostic.getMessage();
             String source = diagnostic.getSource();
@@ -91,6 +100,7 @@ public class LSPInspection extends LocalInspectionTool {
 
         ProblemDescriptor[] descArray = new ProblemDescriptor[descriptors.size()];
         return descriptors.toArray(descArray);
+
     }
 
     @Override
